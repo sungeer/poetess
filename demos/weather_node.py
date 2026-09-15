@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2 as httpx
 import openai
 
 LLM_BASE_URL = 'http://your-proxy-host/v1'

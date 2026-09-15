@@ -7,4 +7,5 @@ pip install -r requirements.txt
 
 python -m pip install python-dotenv openai loguru
 
-
+# 默认已安装
+python -m pip install httpx2
