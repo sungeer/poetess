@@ -7,7 +7,19 @@ LLM_BASE_URL = 'http://your-proxy-host/v1'
 LLM_API_KEY = 'your-api-key'
 LLM_MODEL = 'deepseek-v4-pro'
 
-http_client = httpx.Client(verify=False)  # 禁用 SSL 证书验证
+http_client = httpx.Client(
+    timeout=httpx.Timeout(
+        connect=10.0,
+        read=180.0,
+        write=10.0,
+        pool=10.0
+    ),
+    limits=httpx.Limits(
+        max_connections=1000,
+        keepalive_expiry=0.0,
+    ),
+    verify=False,
+)
 
 client = OpenAI(
     base_url=LLM_BASE_URL,
