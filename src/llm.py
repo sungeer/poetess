@@ -26,7 +26,7 @@ client = OpenAI(
     base_url=os.environ.get('API_BASE_URL'),
     api_key=os.environ.get('API_KEY'),
     http_client=http_client,
-    timeout=120,
+    # timeout=120,
 )
 
 common_kwargs = {

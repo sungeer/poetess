@@ -25,7 +25,6 @@ client = OpenAI(
     base_url=LLM_BASE_URL,
     api_key=LLM_API_KEY,
     http_client=http_client,
-    timeout=120,
 )
 
 
