@@ -20,7 +20,6 @@ pip install python-dotenv openai loguru
 API_BASE_URL=https://api.deepseek.com
 API_KEY=sk-no-key
 MODEL=deepseek-v4-flash
-MAX_TOKENS=65536
 ```
 
 ### 2. 启动
