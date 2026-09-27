@@ -60,7 +60,11 @@ def llm_parse(messages: list, response_format):
         messages=messages,
         response_format=response_format,  # OrderInfo
         temperature=0.0,
-        extra_body={'thinking': {'type': 'disabled'}},
+        extra_body={
+            'thinking': {
+                'type': 'disabled'
+            }
+        },
     )
     parsed = response.choices[0].message.parsed  # OrderInfo | None
     if parsed is None:
@@ -82,7 +86,10 @@ def extract_order(user_input: str):
             'role': 'system',
             'content': '你是订单信息提取助手。从用户输入中提取订单信息。缺失的字段根据上下文合理推断。',
         },
-        {'role': 'user', 'content': user_input},
+        {
+            'role': 'user',
+            'content': user_input
+        },
     ]
     return llm_parse(messages, OrderInfo)
 
