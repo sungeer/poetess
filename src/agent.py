@@ -1,37 +1,28 @@
+import logging
 import json
 import textwrap
-
-from loguru import logger
 
 from src.llm import client, model_name, common_kwargs
 from src.tools import TOOLS, TOOLS_MAP
 from src.memory import ShortTerm
 
+logger = logging.getLogger(__name__)
+
 system_prompt = textwrap.dedent('''
     # 角色
-    你是一个在 AI 编码代理中运行的专家级编码助手。你通过读取文件、执行命令、编辑代码和编写新文件来帮助用户。
+    你是一个在 AI 编码代理中运行的专家级编码助手。你通过读取文件、搜索代码、编辑代码和编写新文件来帮助用户。
 
-    # 可用工具
-    - read: 读取文件内容，支持分页
-    - write: 创建或覆写文件
-    - edit: 精确字符串替换（oldText 必须唯一、不重叠，所有编辑基于原始文件）
-    - grep: 按模式搜索文件内容（支持正则、glob 过滤、上下文行）
-    - find: 按 glob 模式查找文件（支持 ** 递归）
-    - ls: 列出目录内容
+    # 能力边界
+    你没有 shell 工具，无法运行命令、测试、构建，也看不到 git 的 diff 和历史。改完代码请重新用 read 确认结果；
+    需要跑测试或查看 diff 时，请让用户在自己的终端里执行。
 
     # 工作方式
     1. 先理解用户的需求，不清楚时主动提问
-    2. 用 find 了解项目文件结构
+    2. 用 find 了解项目文件结构，用 ls 查看某个目录里有什么
     3. 用 grep 搜索关键代码，用 read 阅读相关文件
-    4. 用小范围的 edit 做精确修改；全新文件或完整重写用 write
-
-    # 工具使用指南
-    - 用 edit 做精确修改——edits[].oldText 必须精确匹配原文件
-    - 修改同一文件多处不连续位置时，在一次 edit 调用中使用多个 edits[]，不要多次调用 edit
-    - 不要包含重叠或嵌套的 edit；相邻修改请合并为一个 edit
-    - 保持 edits[].oldText 尽可能短，同时确保在文件中唯一
-    - 用 write 只用于创建新文件或完整重写
-    - 读文件时检查文件大小，大文件用 offset/limit 分页
+    4. 改动前先 read 原文件；用小范围的 edit 做精确修改，edit 的 oldText 要尽量短且唯一
+    5. 全新文件或完整重写用 write，不要用它做局部修改
+    6. 改完重新 read 确认结果，大文件用 offset/limit 分页
 
     # 代码风格
     - 遵循项目现有的代码风格，不要随意改变
@@ -61,42 +52,46 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
                 **common_kwargs,
             )
         except Exception:
-            logger.exception('LLM 调用失败，第[%s]轮', step)
+            logger.exception('调用失败: 第 %d 轮', step)
             return f'错误：LLM 调用失败（第{step}轮），请检查 API 配置或网络连接'
 
         response_msg = response.choices[0].message.to_dict()
 
         memory.add(response_msg)
 
+        thought = response.content
+        if thought:
+            logger.info('思考过程: %s', thought[:200])
+
         tool_calls = response_msg.get('tool_calls')
         if not tool_calls:
-            logger.info(f'无需工具调用，第[{step}]轮结束')
+            logger.info('无需工具: 第 %d 轮结束', step)
             return response_msg.get('content') or ''
 
-        logger.info(f'工具调用第[{step + 1}]轮')
+        logger.info('工具调用: 第 %d 轮', step)
 
         for tc in tool_calls:
             func_name = tc['function']['name']
             tool_func = TOOLS_MAP.get(func_name)
             if tool_func is None:
-                logger.warning(f'未知工具: {func_name}')
+                logger.warning('未知工具: %s', func_name)
                 continue
 
             try:
                 func_args = json.loads(tc['function']['arguments'])
             except json.JSONDecodeError:
-                logger.warning(f'工具参数解析失败: {tc["function"]["arguments"]}')
+                logger.warning('工具参数解析失败: %s', tc["function"]["arguments"])
                 continue
 
-            logger.info(f'执行工具: {func_name}，参数: {func_args}')
+            logger.info('执行工具: %s， 参数: %s', func_name, func_args)
 
             try:
                 result = tool_func(**func_args)
             except Exception:
-                logger.exception(f'工具执行失败: {func_name}')
+                logger.exception('执行失败: %s', func_name)
                 result = f'工具执行失败: {func_name}'
 
-            logger.info(f'工具结果: {str(result)[:100]}')
+            logger.info('工具结果: %s', str(result)[:100])
 
             memory.add({
                 'role': 'tool',
@@ -104,7 +99,7 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
                 'content': str(result),
             })
 
-    logger.warning(f'工具调用达到上限 {max_steps} 轮，强制总结')
+    logger.warning('工具调用达到上限 %d 轮，强制总结', max_steps)
 
     summary_prompt = (
         '你是一个在命令行工作的 AI 编码助手。'
@@ -124,7 +119,7 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
             **common_kwargs,
         )
     except Exception:
-        logger.exception('LLM 总结调用失败')
+        logger.exception('总结失败')
         return '错误：LLM 调用失败，无法生成总结'
 
     response_msg = response.choices[0].message.to_dict()
