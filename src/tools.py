@@ -141,26 +141,6 @@ def edit(path: str, edits: list[dict]) -> str:
         return f'写入失败：{e}'
 
 
-def bash(command: str, timeout: int = 0) -> str:
-    """执行 shell 命令。可指定超时秒数（0 表示默认 120 秒）。"""
-    timeout_sec = float(timeout) if timeout > 0 else 120.0
-    try:
-        r = subprocess.run(
-            command, shell=True, capture_output=True, text=True,
-            timeout=timeout_sec, encoding='utf-8', errors='replace',
-        )
-        out = r.stdout.strip()
-        err = r.stderr.strip()
-        parts = [out] if out else []
-        if err:
-            parts.append(f'[stderr]\n{err}')
-        return '\n'.join(parts) if parts else '(无输出)'
-    except subprocess.TimeoutExpired:
-        return f'(命令超时，已等待 {timeout_sec:.0f} 秒)'
-    except OSError as e:
-        return f'命令执行失败：{e}'
-
-
 def grep(
     pattern: str,
     path: str = '.',
@@ -309,7 +289,6 @@ TOOLS_MAP = {
     'read': read,
     'write': write,
     'edit': edit,
-    'bash': bash,
     'grep': grep,
     'find': find,
     'ls': ls,
@@ -396,28 +375,6 @@ TOOLS = [
                     },
                 },
                 'required': ['path', 'edits'],
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'bash',
-            'description': '在当前工作目录执行 shell 命令。返回 stdout 和 stderr。可指定超时秒数。',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'command': {
-                        'type': 'string',
-                        'description': '要执行的 shell 命令',
-                    },
-                    'timeout': {
-                        'type': 'integer',
-                        'description': '超时秒数（可选，默认 120 秒）',
-                        'default': 0,
-                    },
-                },
-                'required': ['command'],
             },
         },
     },
