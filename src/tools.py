@@ -1,3 +1,4 @@
+import inspect
 import os
 import re
 from pathlib import Path
@@ -298,7 +299,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'read',
-            'description': '读取文件内容。支持文本文件。用 offset/limit 分页读取大文件。',
+            'description': inspect.getdoc(read),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -325,7 +326,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'write',
-            'description': '写入文件。文件不存在则创建，存在则覆盖。自动创建父目录。',
+            'description': inspect.getdoc(write),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -346,7 +347,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'edit',
-            'description': '对单个文件进行精确字符串替换。edits[].oldText 必须在原文件中唯一，且不能重叠。所有编辑基于原始文件匹配（非增量应用）。多个不连续的修改请放在一次 edit 调用的多个 edits[] 中。',
+            'description': inspect.getdoc(edit),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -381,7 +382,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'grep',
-            'description': '搜索文件内容。返回带文件路径和行号的匹配行。尊重 .gitignore。默认最多返回 100 条匹配。',
+            'description': inspect.getdoc(grep),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -422,7 +423,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'find',
-            'description': '按 glob 模式搜索文件。返回相对于搜索目录的文件路径。尊重 .gitignore。默认最多返回 1000 条结果。',
+            'description': inspect.getdoc(find),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -447,7 +448,7 @@ TOOLS = [
         'type': 'function',
         'function': {
             'name': 'ls',
-            'description': '列出目录内容。按字母排序，目录带 / 后缀。包含隐藏文件。默认最多返回 500 条。',
+            'description': inspect.getdoc(ls),
             'parameters': {
                 'type': 'object',
                 'properties': {
