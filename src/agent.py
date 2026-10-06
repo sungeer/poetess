@@ -15,7 +15,6 @@ system_prompt = textwrap.dedent('''
     - read: 读取文件内容，支持分页
     - write: 创建或覆写文件
     - edit: 精确字符串替换（oldText 必须唯一、不重叠，所有编辑基于原始文件）
-    - bash: 执行 shell 命令（ls、grep、find 等）
     - grep: 按模式搜索文件内容（支持正则、glob 过滤、上下文行）
     - find: 按 glob 模式查找文件（支持 ** 递归）
     - ls: 列出目录内容
@@ -25,7 +24,6 @@ system_prompt = textwrap.dedent('''
     2. 用 find 了解项目文件结构
     3. 用 grep 搜索关键代码，用 read 阅读相关文件
     4. 用小范围的 edit 做精确修改；全新文件或完整重写用 write
-    5. 用 bash 执行测试、构建、git 等命令
 
     # 工具使用指南
     - 用 edit 做精确修改——edits[].oldText 必须精确匹配原文件
