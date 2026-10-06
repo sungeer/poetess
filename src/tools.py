@@ -22,11 +22,12 @@ def read(path: str, offset: int = 0, limit: int = 0) -> str:
     try:
         text = p.read_text(encoding='utf-8')
     except UnicodeDecodeError:
+        # win 中文文件常为 GBK；gbk 也解不开就直接报错，不静默给乱码数据
         try:
-            text = p.read_text(encoding='latin-1')
-            hint += '（已用 latin-1 编码读取）\n'
-        except Exception:
-            return '错误：无法读取该文件（可能为二进制文件）'
+            text = p.read_text(encoding='gbk')
+            hint += '（已用 gbk 编码读取）\n'
+        except UnicodeDecodeError:
+            return '错误：无法读取该文件（编码既不是 utf-8 也不是 gbk，可能为二进制文件）'
 
     lines = text.splitlines()
     total = len(lines)
@@ -190,10 +191,17 @@ def grep(
                     continue
             fpath = os.path.join(dirpath_str, fn)
             try:
-                with open(fpath, encoding='utf-8', errors='replace') as f:
-                    file_lines = f.readlines()
+                with open(fpath, 'rb') as f:
+                    raw = f.read()
             except OSError:
                 continue
+
+            try:
+                text = raw.decode('utf-8')
+            except UnicodeDecodeError:
+                # win 中文文件常为 GBK：gbk 仍失败才用 replace 兜底
+                text = raw.decode('gbk', errors='replace')
+            file_lines = text.splitlines(keepends=True)
 
             if context_lines > 0:
                 # 带上下文模式

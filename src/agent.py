@@ -59,7 +59,7 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
 
         memory.add(response_msg)
 
-        thought = response.content
+        thought = response_msg.get('content')
         if thought:
             logger.info('思考过程: %s', thought[:200])
 
@@ -75,12 +75,22 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
             tool_func = TOOLS_MAP.get(func_name)
             if tool_func is None:
                 logger.warning('未知工具: %s', func_name)
+                memory.add({
+                    'role': 'tool',
+                    'tool_call_id': tc['id'],
+                    'content': f'错误：未知工具 {func_name}',
+                })
                 continue
 
             try:
                 func_args = json.loads(tc['function']['arguments'])
             except json.JSONDecodeError:
                 logger.warning('工具参数解析失败: %s', tc["function"]["arguments"])
+                memory.add({
+                    'role': 'tool',
+                    'tool_call_id': tc['id'],
+                    'content': '错误：工具参数不是合法 JSON',
+                })
                 continue
 
             logger.info('执行工具: %s， 参数: %s', func_name, func_args)
@@ -106,11 +116,7 @@ def run_agent(user_input: str, memory: ShortTerm, max_steps: int = 100) -> str:
         '根据已有信息回答用户，不要客套寒暄，采用最简洁明了的回答。'
     )
 
-    final_messages = [{'role': 'system', 'content': summary_prompt}]
-
-    for msg in memory.get_messages():
-        if msg.get('role') in ('user', 'tool'):
-            final_messages.append(msg)
+    final_messages = [{'role': 'system', 'content': summary_prompt}] + memory.get_messages()
 
     try:
         response = client.chat.completions.create(

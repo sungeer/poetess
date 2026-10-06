@@ -14,7 +14,10 @@ class ShortTerm:
 
     def get_messages(self) -> list[dict]:
         """返回消息列表的副本"""
-        return list(self._messages)
+        messages = list(self._messages)
+        while messages and messages[0].get('role') == 'tool':
+            messages.pop(0)
+        return messages
 
     def clear(self) -> None:
         """清空全部历史
